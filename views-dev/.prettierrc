@@ -1,0 +1,3 @@
+{
+  "attributeGroups": ["^x-*", "$CODE_GUIDE", "^placeholder"]
+}

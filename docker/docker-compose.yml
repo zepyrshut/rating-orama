@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  harvester:
+    container_name: harvester-ratingorama
+    image: harvester:0.1.0
+    networks:
+      - ratingorama
+  core:
+    container_name: core-ratingorama
+    image: core:0.1.0
+    environment:
+      DATASOURCE: ${DATASOURCE}
+      HARVESTER_API: ${HARVESTER_API}
+      IS_PRODUCTION: ${IS_PRODUCTION}
+    ports:
+      - "3000:3000"
+    networks:
+      - ratingorama
+  db:
+    container_name: db-ratingorama
+    image: postgres:15.2-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - ratingorama
+
+networks:
+  ratingorama:

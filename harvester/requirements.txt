@@ -1,0 +1,2 @@
+Flask==2.2.3
+cinemagoer==2022.12.27
