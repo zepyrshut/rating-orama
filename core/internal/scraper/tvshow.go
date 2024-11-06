@@ -24,25 +24,38 @@ type Episode struct {
 
 type Season []Episode
 
-const seasonsSelector = "ul.ipc-tabs a[data-testid='tab-season-entry']"
-const episodesSelector = "section.sc-1e7f96be-0.ZaQIL"
-const nextSeasonButtonSelector = "#next-season-btn"
-const imdbEpisodesURL = "https://www.imdb.com/title/%s/episodes?season=%d"
+const (
+	titleSelector            = "h2.sc-b8cc654b-9.dmvgRY"
+	seasonsSelector          = "ul.ipc-tabs a[data-testid='tab-season-entry']"
+	episodesSelector         = "section.sc-1e7f96be-0.ZaQIL"
+	nextSeasonButtonSelector = "#next-season-btn"
+	imdbEpisodesURL          = "https://www.imdb.com/title/%s/episodes?season=%d"
+	visitURL                 = "https://www.imdb.com/title/%s/episodes"
+)
 
-func ScrapeSeasons(ttImdb string) []Season {
+func ScrapeSeasons(ttImdb string) (string, []Season) {
 	c := colly.NewCollector(
 		colly.AllowedDomains("imdb.com", "www.imdb.com"),
 	)
 
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("Accept-Language", "en-US")
+	})
+
 	var allSeasons []Season
 	var seasons []int
+	var title string
 
-	c.OnHTML("ul.ipc-tabs a[data-testid='tab-season-entry']", func(e *colly.HTMLElement) {
+	c.OnHTML(seasonsSelector, func(e *colly.HTMLElement) {
 		seasonText := strings.TrimSpace(e.Text)
 		seasonNum, err := strconv.Atoi(seasonText)
 		if err == nil {
 			seasons = append(seasons, seasonNum)
 		}
+	})
+
+	c.OnHTML(titleSelector, func(e *colly.HTMLElement) {
+		title = e.Text
 	})
 
 	c.OnScraped(func(r *colly.Response) {
@@ -75,10 +88,10 @@ func ScrapeSeasons(ttImdb string) []Season {
 		episodeCollector.Wait()
 	})
 
-	c.Visit(fmt.Sprintf("https://www.imdb.com/title/%s/episodes", ttImdb))
+	c.Visit(fmt.Sprintf(visitURL, ttImdb))
 	c.Wait()
 
-	return allSeasons
+	return title, allSeasons
 }
 
 func extractEpisodesFromSeason(data string) Season {

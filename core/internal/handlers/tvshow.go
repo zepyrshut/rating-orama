@@ -12,11 +12,12 @@ func (hq *Handlers) GetTVShow(c *gin.Context) {
 	ttShowID := c.Query("ttid")
 	slog.Info("GetTVShow", "ttid", ttShowID)
 
-	seasons := scraper.ScrapeSeasons(ttShowID)
+	title, seasons := scraper.ScrapeSeasons(ttShowID)
 
-	slog.Info("scraped seasons", "ttid", ttShowID)
+	slog.Info("scraped seasons", "ttid", ttShowID, "title", title)
 
 	c.JSON(http.StatusOK, gin.H{
+		"title":   title,
 		"seasons": seasons,
 	})
 }
