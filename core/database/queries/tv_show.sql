@@ -33,5 +33,5 @@ select avg(avg_rating) from "episodes"
 where tv_show_id = $1 and season = $2;
 
 -- name: SeasonMedianRating :one
--- select percentile_cont(0.5) within group (order by avg_rating) from "episodes"
--- where tv_show_id = $1 and season = $2;
+select percentile_cont(0.5) within group (order by avg_rating) from "episodes"
+where tv_show_id = $1 and season = $2;

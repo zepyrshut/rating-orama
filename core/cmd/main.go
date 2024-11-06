@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/gob"
+	"errors"
 	"gopher-toolbox/config"
 	"log/slog"
 	"net/http"
@@ -45,11 +46,11 @@ func migrateDB() {
 	}
 
 	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		slog.Error("cannot migrate", "error", err)
 		panic(err)
 	}
-	if err == migrate.ErrNoChange {
+	if errors.Is(err, migrate.ErrNoChange) {
 		slog.Info("migration has no changes")
 	}
 

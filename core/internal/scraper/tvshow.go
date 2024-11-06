@@ -28,7 +28,7 @@ type Episode struct {
 func (e Episode) ToEpisodeParams(tvShowID int32) sqlc.CreateEpisodesParams {
 
 	var date pgtype.Date
-	date.Scan(e.Released)
+	_ = date.Scan(e.Released)
 
 	return sqlc.CreateEpisodesParams{
 		TvShowID:  tvShowID,
@@ -82,7 +82,7 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 
 	c.OnScraped(func(r *colly.Response) {
 		seasonMap := make(map[int]bool)
-		uniqueSeasons := []int{}
+		var uniqueSeasons []int
 		slog.Info("scraped seasons", "seasons", seasons)
 		for _, seasonNum := range seasons {
 			if !seasonMap[seasonNum] {
@@ -103,13 +103,13 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 		for _, seasonNum := range uniqueSeasons {
 			seasonURL := fmt.Sprintf(imdbEpisodesURL, ttImdb, seasonNum)
 			slog.Info("visiting season", "url", seasonURL)
-			episodeCollector.Visit(seasonURL)
+			_ = episodeCollector.Visit(seasonURL)
 		}
 
 		episodeCollector.Wait()
 	})
 
-	c.Visit(fmt.Sprintf(visitURL, ttImdb))
+	_ = c.Visit(fmt.Sprintf(visitURL, ttImdb))
 	c.Wait()
 
 	slog.Info("scraped all seasons", "length", len(allSeasons))
