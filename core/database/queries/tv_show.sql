@@ -18,7 +18,7 @@ where tv_show_id = $1;
 
 -- name: IncreasePopularity :exec
 update "tv_show" set popularity = popularity + 1
-where id = $1;
+where tt_imdb = $1;
 
 -- name: TvShowAverageRating :one
 select avg(avg_rating) from "episodes"

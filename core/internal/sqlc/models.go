@@ -9,15 +9,15 @@ import (
 )
 
 type Episode struct {
-	ID        int32          `json:"id"`
-	TvShowID  int32          `json:"tv_show_id"`
-	Season    int32          `json:"season"`
-	Episode   int32          `json:"episode"`
-	Released  pgtype.Date    `json:"released"`
-	Name      string         `json:"name"`
-	Plot      string         `json:"plot"`
-	AvgRating pgtype.Numeric `json:"avg_rating"`
-	VoteCount int32          `json:"vote_count"`
+	ID        int32       `json:"id"`
+	TvShowID  int32       `json:"tv_show_id"`
+	Season    int32       `json:"season"`
+	Episode   int32       `json:"episode"`
+	Released  pgtype.Date `json:"released"`
+	Name      string      `json:"name"`
+	Plot      string      `json:"plot"`
+	AvgRating float32     `json:"avg_rating"`
+	VoteCount int32       `json:"vote_count"`
 }
 
 type TvShow struct {

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gocolly/colly"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/zepyrshut/rating-orama/internal/sqlc"
 )
 
 type Episode struct {
@@ -18,11 +20,26 @@ type Episode struct {
 	Released  time.Time
 	Name      string
 	Plot      string
-	Rate      float64
+	Rate      float32
 	VoteCount int
 }
 
-type Season []Episode
+func (e Episode) ToEpisodeParams(tvShowID int32) sqlc.CreateEpisodesParams {
+
+	var date pgtype.Date
+	date.Scan(e.Released)
+
+	return sqlc.CreateEpisodesParams{
+		TvShowID:  tvShowID,
+		Season:    int32(e.Season),
+		Episode:   int32(e.Episode),
+		Name:      e.Name,
+		Released:  date,
+		Plot:      e.Plot,
+		AvgRating: e.Rate,
+		VoteCount: int32(e.VoteCount),
+	}
+}
 
 const (
 	titleSelector            = "h2.sc-b8cc654b-9.dmvgRY"
@@ -33,7 +50,7 @@ const (
 	visitURL                 = "https://www.imdb.com/title/%s/episodes"
 )
 
-func ScrapeSeasons(ttImdb string) (string, []Season) {
+func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 	c := colly.NewCollector(
 		colly.AllowedDomains("imdb.com", "www.imdb.com"),
 	)
@@ -42,7 +59,7 @@ func ScrapeSeasons(ttImdb string) (string, []Season) {
 		r.Headers.Set("Accept-Language", "en-US")
 	})
 
-	var allSeasons []Season
+	var allSeasons []Episode
 	var seasons []int
 	var title string
 
@@ -75,8 +92,7 @@ func ScrapeSeasons(ttImdb string) (string, []Season) {
 
 		episodeCollector.OnHTML(episodesSelector, func(e *colly.HTMLElement) {
 			seasonEpisodes := extractEpisodesFromSeason(e.Text)
-			allSeasons = append(allSeasons, seasonEpisodes)
-			//allEpisodes = append(allEpisodes, seasonEpisodes...)
+			allSeasons = append(allSeasons, seasonEpisodes...)
 		})
 
 		for _, seasonNum := range uniqueSeasons {
@@ -94,7 +110,7 @@ func ScrapeSeasons(ttImdb string) (string, []Season) {
 	return title, allSeasons
 }
 
-func extractEpisodesFromSeason(data string) Season {
+func extractEpisodesFromSeason(data string) []Episode {
 	const pattern = `(S\d+\.E\d+)\s∙\s(.*?)` +
 		`(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s` +
 		`(.*?),\s(\d{4})(.*?)` +
@@ -123,15 +139,16 @@ func extractEpisodesFromSeason(data string) Season {
 		seasonNum := strings.TrimPrefix(strings.Split(seasonEpisode, ".")[0], "S")
 		episodeNum := strings.TrimPrefix(strings.Split(seasonEpisode, ".")[1], "E")
 
-		votes, _ := strconv.Atoi(strings.TrimSuffix(strings.TrimSuffix(voteCount, "K"), "K"))
+		votesInt, _ := strconv.Atoi(strings.TrimSuffix(strings.TrimSuffix(voteCount, "K"), "K"))
+		rateFloat, _ := strconv.ParseFloat(strings.TrimSuffix(rate, "/10"), 32)
 
 		episode.Name = name
 		episode.Episode, _ = strconv.Atoi(episodeNum)
 		episode.Season, _ = strconv.Atoi(seasonNum)
 		episode.Released, _ = time.Parse("Mon, Jan 2, 2006", fmt.Sprintf("%s, %s, %s", day, dateRest, year))
 		episode.Plot = plot
-		episode.Rate, _ = strconv.ParseFloat(strings.TrimSuffix(rate, "/10"), 2)
-		episode.VoteCount = votes * 1000
+		episode.Rate = float32(rateFloat)
+		episode.VoteCount = votesInt * 1000
 
 		episodes = append(episodes, episode)
 	}

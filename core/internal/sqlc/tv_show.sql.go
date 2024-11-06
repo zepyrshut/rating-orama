@@ -37,14 +37,14 @@ returning id, tv_show_id, season, episode, released, name, plot, avg_rating, vot
 `
 
 type CreateEpisodesParams struct {
-	TvShowID  int32          `json:"tv_show_id"`
-	Season    int32          `json:"season"`
-	Episode   int32          `json:"episode"`
-	Released  pgtype.Date    `json:"released"`
-	Name      string         `json:"name"`
-	Plot      string         `json:"plot"`
-	AvgRating pgtype.Numeric `json:"avg_rating"`
-	VoteCount int32          `json:"vote_count"`
+	TvShowID  int32       `json:"tv_show_id"`
+	Season    int32       `json:"season"`
+	Episode   int32       `json:"episode"`
+	Released  pgtype.Date `json:"released"`
+	Name      string      `json:"name"`
+	Plot      string      `json:"plot"`
+	AvgRating float32     `json:"avg_rating"`
+	VoteCount int32       `json:"vote_count"`
 }
 
 func (q *Queries) CreateEpisodes(ctx context.Context, arg CreateEpisodesParams) (Episode, error) {
@@ -135,11 +135,11 @@ func (q *Queries) GetEpisodes(ctx context.Context, tvShowID int32) ([]Episode, e
 
 const increasePopularity = `-- name: IncreasePopularity :exec
 update "tv_show" set popularity = popularity + 1
-where id = $1
+where tt_imdb = $1
 `
 
-func (q *Queries) IncreasePopularity(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, increasePopularity, id)
+func (q *Queries) IncreasePopularity(ctx context.Context, ttImdb string) error {
+	_, err := q.db.Exec(ctx, increasePopularity, ttImdb)
 	return err
 }
 
