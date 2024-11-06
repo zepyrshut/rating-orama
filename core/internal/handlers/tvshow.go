@@ -14,6 +14,8 @@ func (hq *Handlers) GetTVShow(c *gin.Context) {
 
 	seasons := scraper.ScrapeSeasons(ttShowID)
 
+	slog.Info("scraped seasons", "ttid", ttShowID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"seasons": seasons,
 	})

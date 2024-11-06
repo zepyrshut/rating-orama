@@ -34,7 +34,6 @@ func ScrapeSeasons(ttImdb string) []Season {
 		colly.AllowedDomains("imdb.com", "www.imdb.com"),
 	)
 
-	//var allEpisodes []Episode
 	var allSeasons []Season
 	var seasons []int
 
@@ -49,6 +48,7 @@ func ScrapeSeasons(ttImdb string) []Season {
 	c.OnScraped(func(r *colly.Response) {
 		seasonMap := make(map[int]bool)
 		uniqueSeasons := []int{}
+		slog.Info("scraped seasons", "seasons", seasons)
 		for _, seasonNum := range seasons {
 			if !seasonMap[seasonNum] {
 				seasonMap[seasonNum] = true
@@ -75,7 +75,7 @@ func ScrapeSeasons(ttImdb string) []Season {
 		episodeCollector.Wait()
 	})
 
-	c.Visit("https://www.imdb.com/title/tt0903747/episodes")
+	c.Visit(fmt.Sprintf("https://www.imdb.com/title/%s/episodes", ttImdb))
 	c.Wait()
 
 	return allSeasons
