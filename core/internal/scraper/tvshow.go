@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"log/slog"
 	"regexp"
 	"sort"
@@ -42,12 +43,16 @@ func (e Episode) ToEpisodeParams(tvShowID int32) sqlc.CreateEpisodesParams {
 }
 
 const (
-	titleSelector            = "h2.sc-b8cc654b-9.dmvgRY"
-	seasonsSelector          = "ul.ipc-tabs a[data-testid='tab-season-entry']"
-	episodesSelector         = "section.sc-1e7f96be-0.ZaQIL"
-	nextSeasonButtonSelector = "#next-season-btn"
-	imdbEpisodesURL          = "https://www.imdb.com/title/%s/episodes?season=%d"
-	visitURL                 = "https://www.imdb.com/title/%s/episodes"
+	titleSelector                 = "h2.sc-b8cc654b-9.dmvgRY"
+	seasonsSelector               = "ul.ipc-tabs a[data-testid='tab-season-entry']"
+	episodeCardSelector           = "article.sc-f8507e90-1.cHtpvn.episode-item-wrapper"
+	seasonEpisodeAndTitleSelector = "div.ipc-title__text"
+	releasedDateSelector          = "span.sc-ccd6e31b-10.dYquTu"
+	plotSelector                  = "div.sc-ccd6e31b-11.cVKeME"
+	starRatingSelector            = "span.ipc-rating-star--rating"
+	voteCountSelector             = "span.ipc-rating-star--voteCount"
+	imdbEpisodesURL               = "https://www.imdb.com/title/%s/episodes/?season=%d"
+	visitURL                      = "https://www.imdb.com/title/%s/episodes"
 )
 
 func ScrapeEpisodes(ttImdb string) (string, []Episode) {
@@ -87,12 +92,12 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 		}
 
 		sort.Ints(uniqueSeasons)
-
 		episodeCollector := c.Clone()
 
-		episodeCollector.OnHTML(episodesSelector, func(e *colly.HTMLElement) {
-			seasonEpisodes := extractEpisodesFromSeason(e.Text)
-			allSeasons = append(allSeasons, seasonEpisodes...)
+		episodeCollector.OnResponse(func(r *colly.Response) {
+			slog.Info("response", "url", r.Request.URL)
+			season := extractEpisodesFromSeason(string(r.Body))
+			allSeasons = append(allSeasons, season...)
 		})
 
 		for _, seasonNum := range uniqueSeasons {
@@ -107,57 +112,102 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 	c.Visit(fmt.Sprintf(visitURL, ttImdb))
 	c.Wait()
 
-	slog.Info("scraped all seasons", "seasons", allSeasons)
+	slog.Info("scraped all seasons", "length", len(allSeasons))
 	return title, allSeasons
 }
 
 func extractEpisodesFromSeason(data string) []Episode {
-
-	slog.Info("extracting episodes", "data", data)
-
-	const pattern = `(S\d+\.E\d+)\s∙\s(.*?)` +
-		`(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s` +
-		`(.*?),\s(\d{4})(.*?)` +
-		`(\d\.\d{1,2}\/10) \((\d+K)\)Rate`
-
-	re := regexp.MustCompile(pattern)
-	matches := re.FindAllStringSubmatch(data, -1)
-
-	episodes := make([]Episode, 0, len(matches))
-
-	slog.Info("matches", "num", len(matches))
-
-	for _, match := range matches {
-		var episode Episode
-
-		seasonEpisode := match[1]
-
-		name := strings.TrimSpace(match[2])
-
-		day := match[3]
-		dateRest := strings.TrimSpace(match[4])
-		year := match[5]
-
-		plot := strings.TrimSpace(match[6])
-		rate := match[7]
-		voteCount := match[8]
-
-		seasonNum := strings.TrimPrefix(strings.Split(seasonEpisode, ".")[0], "S")
-		episodeNum := strings.TrimPrefix(strings.Split(seasonEpisode, ".")[1], "E")
-
-		votesInt, _ := strconv.Atoi(strings.TrimSuffix(strings.TrimSuffix(voteCount, "K"), "K"))
-		rateFloat, _ := strconv.ParseFloat(strings.TrimSuffix(rate, "/10"), 32)
-
-		episode.Name = name
-		episode.Episode, _ = strconv.Atoi(episodeNum)
-		episode.Season, _ = strconv.Atoi(seasonNum)
-		episode.Released, _ = time.Parse("Mon, Jan 2, 2006", fmt.Sprintf("%s, %s, %s", day, dateRest, year))
-		episode.Plot = plot
-		episode.Rate = float32(rateFloat)
-		episode.VoteCount = votesInt * 1000
-
-		episodes = append(episodes, episode)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(data))
+	if err != nil {
+		slog.Error("error parsing html")
+		return []Episode{}
 	}
 
+	var episodes []Episode
+	doc.Find(episodeCardSelector).Each(func(i int, s *goquery.Selection) {
+		var episode Episode
+
+		seasonEpisodeTitle := s.Find(seasonEpisodeAndTitleSelector).Text()
+		episode.Season, episode.Episode, episode.Name = parseSeasonEpisodeTitle(seasonEpisodeTitle)
+
+		releasedDate := s.Find(releasedDateSelector).Text()
+		episode.Released = parseReleasedDate(releasedDate)
+
+		plot := s.Find(plotSelector).Text()
+		if plot == "Add a plot" {
+			episode.Plot = ""
+		} else {
+			episode.Plot = plot
+		}
+
+		starRating := s.Find(starRatingSelector).Text()
+		episode.Rate = parseStarRating(starRating)
+
+		voteCount := s.Find(voteCountSelector).Text()
+		slog.Info("vote count", "count", voteCount)
+		episode.VoteCount = parseVoteCount(voteCount)
+
+		episodes = append(episodes, episode)
+	})
+
+	slog.Info("extracted episodes", "length", len(episodes))
 	return episodes
+}
+
+func parseSeasonEpisodeTitle(input string) (int, int, string) {
+	re := regexp.MustCompile(`S(\d+)\.E(\d+)\s*∙\s*(.+)`)
+	matches := re.FindStringSubmatch(input)
+	if len(matches) != 4 {
+		return 0, 0, ""
+	}
+
+	seasonNum, err1 := strconv.Atoi(matches[1])
+	episodeNum, err2 := strconv.Atoi(matches[2])
+	name := strings.TrimSpace(matches[3])
+
+	if err1 != nil || err2 != nil {
+		return 0, 0, ""
+	}
+
+	return seasonNum, episodeNum, name
+}
+
+func parseReleasedDate(releasedDate string) time.Time {
+	const layout = "Mon, Jan 2, 2006"
+	parsedDate, err := time.Parse(layout, releasedDate)
+	if err != nil {
+		slog.Error("error parsing date", "date", releasedDate)
+		return time.Time{}
+	}
+	return parsedDate
+}
+
+func parseStarRating(starRating string) float32 {
+	rating, err := strconv.ParseFloat(starRating, 32)
+	if err != nil || rating < 0 || rating > 10 {
+		slog.Warn("error parsing rating, out of limits", "rating", starRating)
+		return 0
+	}
+	return float32(rating)
+}
+
+func parseVoteCount(voteCount string) int {
+	re := regexp.MustCompile(`\(([\d.]+)(K?)\)`)
+	matches := re.FindStringSubmatch(voteCount)
+	if len(matches) != 3 {
+		slog.Error("error parsing vote count", "count", voteCount)
+		return 0
+	}
+
+	num, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil {
+		slog.Error("error parsing vote count", "count", voteCount)
+		return 0
+	}
+
+	if matches[2] == "K" {
+		num *= 1000
+	}
+
+	return int(num)
 }
