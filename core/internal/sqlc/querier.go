@@ -15,6 +15,7 @@ type Querier interface {
 	GetEpisodes(ctx context.Context, tvShowID int32) ([]Episode, error)
 	IncreasePopularity(ctx context.Context, ttImdb string) error
 	SeasonAverageRating(ctx context.Context, arg SeasonAverageRatingParams) (float64, error)
+	SeasonMedianRating(ctx context.Context, arg SeasonMedianRatingParams) (float64, error)
 	TvShowAverageRating(ctx context.Context, tvShowID int32) (float64, error)
 	TvShowMedianRating(ctx context.Context, tvShowID int32) (float64, error)
 }

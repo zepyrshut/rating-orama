@@ -66,6 +66,7 @@ func (hq *Handlers) ToBeImplemented(c *gin.Context) {
 }
 
 func (hq *Handlers) Ping(c *gin.Context) {
+	slog.Info("ping", RequestID, c.Request.Context().Value(RequestID))
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",
 	})

@@ -11,6 +11,7 @@ func Router(h *handlers.Handlers, app *config.App) *gin.Engine {
 	gin.SetMode(app.AppInfo.GinMode)
 	r := gin.New()
 
+	r.GET("/ping", h.Ping)
 	r.GET("/tvshow", h.GetTVShow)
 
 	return r

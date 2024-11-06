@@ -50,9 +50,14 @@ func (hq *Handlers) GetTVShow(c *gin.Context) {
 		slog.Info("tv show exists", "ttid", ttShowID, "title", tvShow.Name)
 	}
 
+	tvShowMedian, _ := hq.Queries.TvShowMedianRating(c, sqlcEpisodes[0].TvShowID)
+	tvShowAverage, _ := hq.Queries.TvShowAverageRating(c, sqlcEpisodes[0].TvShowID)
+
 	c.JSON(http.StatusOK, gin.H{
-		"popularity": tvShow.Popularity,
-		"title":      title,
-		"seasons":    sqlcEpisodes,
+		"popularity":    tvShow.Popularity,
+		"title":         title,
+		"seasons":       sqlcEpisodes,
+		"tvShowMedian":  tvShowMedian,
+		"tvShowAverage": tvShowAverage,
 	})
 }

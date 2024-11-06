@@ -101,6 +101,7 @@ func (q *Queries) CreateTVShow(ctx context.Context, arg CreateTVShowParams) (TvS
 const getEpisodes = `-- name: GetEpisodes :many
 select id, tv_show_id, season, episode, released, name, plot, avg_rating, vote_count from "episodes"
 where tv_show_id = $1
+order by season, episode asc
 `
 
 func (q *Queries) GetEpisodes(ctx context.Context, tvShowID int32) ([]Episode, error) {
@@ -158,6 +159,23 @@ func (q *Queries) SeasonAverageRating(ctx context.Context, arg SeasonAverageRati
 	var avg float64
 	err := row.Scan(&avg)
 	return avg, err
+}
+
+const seasonMedianRating = `-- name: SeasonMedianRating :one
+select percentile_cont(0.5) within group (order by avg_rating) from "episodes"
+where tv_show_id = $1 and season = $2
+`
+
+type SeasonMedianRatingParams struct {
+	TvShowID int32 `json:"tv_show_id"`
+	Season   int32 `json:"season"`
+}
+
+func (q *Queries) SeasonMedianRating(ctx context.Context, arg SeasonMedianRatingParams) (float64, error) {
+	row := q.db.QueryRow(ctx, seasonMedianRating, arg.TvShowID, arg.Season)
+	var percentile_cont float64
+	err := row.Scan(&percentile_cont)
+	return percentile_cont, err
 }
 
 const tvShowAverageRating = `-- name: TvShowAverageRating :one

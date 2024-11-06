@@ -14,7 +14,8 @@ where tt_imdb = $1;
 
 -- name: GetEpisodes :many
 select * from "episodes"
-where tv_show_id = $1;
+where tv_show_id = $1
+order by season, episode asc;
 
 -- name: IncreasePopularity :exec
 update "tv_show" set popularity = popularity + 1
