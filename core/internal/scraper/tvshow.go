@@ -29,12 +29,13 @@ const episodesSelector = "section.sc-1e7f96be-0.ZaQIL"
 const nextSeasonButtonSelector = "#next-season-btn"
 const imdbEpisodesURL = "https://www.imdb.com/title/%s/episodes?season=%d"
 
-func scrapeSeasons(ttImdb string) {
+func ScrapeSeasons(ttImdb string) []Season {
 	c := colly.NewCollector(
 		colly.AllowedDomains("imdb.com", "www.imdb.com"),
 	)
 
-	var allEpisodes []Episode
+	//var allEpisodes []Episode
+	var allSeasons []Season
 	var seasons []int
 
 	c.OnHTML("ul.ipc-tabs a[data-testid='tab-season-entry']", func(e *colly.HTMLElement) {
@@ -61,26 +62,23 @@ func scrapeSeasons(ttImdb string) {
 
 		episodeCollector.OnHTML(episodesSelector, func(e *colly.HTMLElement) {
 			seasonEpisodes := extractEpisodesFromSeason(e.Text)
-			allEpisodes = append(allEpisodes, seasonEpisodes...)
+			allSeasons = append(allSeasons, seasonEpisodes)
+			//allEpisodes = append(allEpisodes, seasonEpisodes...)
 		})
 
 		for _, seasonNum := range uniqueSeasons {
 			seasonURL := fmt.Sprintf(imdbEpisodesURL, ttImdb, seasonNum)
-			slog.Info("visiting %s", seasonURL)
+			slog.Info("visiting season", "url", seasonURL)
 			episodeCollector.Visit(seasonURL)
 		}
 
 		episodeCollector.Wait()
-
-		// fmt.Println("Total de episodios:", len(allEpisodes))
-		// for _, episode := range allEpisodes {
-		// 	fmt.Printf("Temporada %d, Episodio %d: %s\n", episode.Season, episode.Episode, episode.Name)
-		// }
-		// TODO: Save to DB
 	})
 
 	c.Visit("https://www.imdb.com/title/tt0903747/episodes")
 	c.Wait()
+
+	return allSeasons
 }
 
 func extractEpisodesFromSeason(data string) Season {

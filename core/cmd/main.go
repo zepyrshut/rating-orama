@@ -18,7 +18,7 @@ import (
 	"github.com/zepyrshut/rating-orama/internal/repository"
 )
 
-const version = "0.2.0-beta.20241116"
+const version = "0.2.0-beta.20241116-4"
 
 var app *config.App
 

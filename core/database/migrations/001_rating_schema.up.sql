@@ -8,7 +8,8 @@ create table if not exists tv_show (
   updated_at timestamp not null default (now())
 );
 
-create index if not exists idx_tv_show_title on "tv_show" ("title");
+create index if not exists idx_tv_show_name on "tv_show" ("name");
+create index if not exists idx_tv_show_tt_imdb on "tv_show" ("tt_imdb");
 create index if not exists idx_tv_show_updated_at on "tv_show" ("updated_at");
 
 create table if not exists episodes (
