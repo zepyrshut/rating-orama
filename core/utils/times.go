@@ -2,6 +2,7 @@ package utils
 
 import "time"
 
+// TODO: Move to toolbox
 func TimeParser(timeString string) (time.Time, error) {
 	if len(timeString) == 1 {
 		return time.Time{}, nil

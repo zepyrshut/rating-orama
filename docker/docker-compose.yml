@@ -1,11 +1,6 @@
 version: '3'
 
 services:
-  harvester:
-    container_name: harvester-ratingorama
-    image: harvester:0.1.0
-    networks:
-      - ratingorama
   core:
     container_name: core-ratingorama
     image: core:0.1.0
@@ -14,7 +9,7 @@ services:
       HARVESTER_API: ${HARVESTER_API}
       IS_PRODUCTION: ${IS_PRODUCTION}
     ports:
-      - "3000:3000"
+      - "8086:8080"
     networks:
       - ratingorama
   db:
