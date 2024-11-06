@@ -144,7 +144,6 @@ func extractEpisodesFromSeason(data string) []Episode {
 		episode.Rate = parseStarRating(starRating)
 
 		voteCount := s.Find(voteCountSelector).Text()
-		slog.Info("vote count", "count", voteCount)
 		episode.VoteCount = parseVoteCount(voteCount)
 
 		episodes = append(episodes, episode)
