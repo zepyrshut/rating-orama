@@ -107,10 +107,14 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 	c.Visit(fmt.Sprintf(visitURL, ttImdb))
 	c.Wait()
 
+	slog.Info("scraped all seasons", "seasons", allSeasons)
 	return title, allSeasons
 }
 
 func extractEpisodesFromSeason(data string) []Episode {
+
+	slog.Info("extracting episodes", "data", data)
+
 	const pattern = `(S\d+\.E\d+)\s∙\s(.*?)` +
 		`(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s` +
 		`(.*?),\s(\d{4})(.*?)` +
@@ -120,6 +124,8 @@ func extractEpisodesFromSeason(data string) []Episode {
 	matches := re.FindAllStringSubmatch(data, -1)
 
 	episodes := make([]Episode, 0, len(matches))
+
+	slog.Info("matches", "num", len(matches))
 
 	for _, match := range matches {
 		var episode Episode

@@ -20,27 +20,15 @@ func (hq *Handlers) GetTVShow(c *gin.Context) {
 	tvShow, err := hq.Queries.CheckTVShowExists(c, ttShowID)
 	if err != nil {
 		title, scraperEpisodes = scraper.ScrapeEpisodes(ttShowID)
-		// TODO: make transactional
-		ttShow, err := hq.Queries.CreateTVShow(c, sqlc.CreateTVShowParams{
+
+		sqlcEpisodes, err = hq.Queries.CreateTvShowWithEpisodes(c, sqlc.CreateTVShowParams{
 			TtImdb: ttShowID,
 			Name:   title,
-		})
+		}, scraperEpisodes)
 		if err != nil {
-			slog.Error("failed to create tv show", "ttid", ttShowID, "error", err)
+			slog.Error("failed to create tv show with episodes", "ttid", ttShowID, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": ErrorCreating})
-		}
-
-		slog.Info("ttshowid", "id", ttShow.ID)
-		for _, episode := range scraperEpisodes {
-			sqlcEpisodesParams := episode.ToEpisodeParams(ttShow.ID)
-			sqlcEpisode, err := hq.Queries.CreateEpisodes(c, sqlcEpisodesParams)
-			if err != nil {
-				slog.Error("failed to create episodes", "ttid", ttShowID, "error", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": ErrorCreating})
-				return
-			}
-
-			sqlcEpisodes = append(sqlcEpisodes, sqlcEpisode)
+			return
 		}
 
 		slog.Info("scraped seasons", "ttid", ttShowID, "title", title)
@@ -53,7 +41,12 @@ func (hq *Handlers) GetTVShow(c *gin.Context) {
 			return
 		}
 
-		hq.Queries.IncreasePopularity(c, ttShowID)
+		if err := hq.Queries.IncreasePopularity(c, ttShowID); err != nil {
+			slog.Error("failed to increase popularity", "ttid", ttShowID, "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": ErrorUpdating})
+			return
+		}
+
 		slog.Info("tv show exists", "ttid", ttShowID, "title", tvShow.Name)
 	}
 
