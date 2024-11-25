@@ -2,13 +2,14 @@ package scraper
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"log/slog"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
 
 	"github.com/gocolly/colly"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -47,13 +48,14 @@ const (
 	seasonsSelector               = "ul.ipc-tabs a[data-testid='tab-season-entry']"
 	episodeCardSelector           = "article.sc-f8507e90-1.cHtpvn.episode-item-wrapper"
 	seasonEpisodeAndTitleSelector = "div.ipc-title__text"
-	releasedDateSelector          = "span.sc-ccd6e31b-10.dYquTu"
-	plotSelector                  = "div.sc-ccd6e31b-11.cVKeME"
+	releasedDateSelector          = "span.sc-f2169d65-10.bYaARM"
+	plotSelector                  = "div.ipc-html-content-inner-div"
 	starRatingSelector            = "span.ipc-rating-star--rating"
 	voteCountSelector             = "span.ipc-rating-star--voteCount"
 	imdbEpisodesURL               = "https://www.imdb.com/title/%s/episodes/?season=%d"
 	visitURL                      = "https://www.imdb.com/title/%s/episodes"
 )
+
 
 func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 	c := colly.NewCollector(

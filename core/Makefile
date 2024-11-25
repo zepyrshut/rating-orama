@@ -63,7 +63,7 @@ tidy:
 build-linux:
 	make tidy
 	make remove-debug
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/rating ./cmd/.
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/arena ./cmd/.
 
 .PHONY: pack-docker
 # Run docker build for pack binary and assets to Docker container.
