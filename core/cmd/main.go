@@ -6,9 +6,8 @@ import (
 	"gopher-toolbox/app"
 	"gopher-toolbox/db"
 	"log/slog"
-	"net/http"
-	"ron"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/zepyrshut/rating-orama/internal/handlers"
 	"github.com/zepyrshut/rating-orama/internal/repository"
 )
@@ -17,6 +16,7 @@ import (
 var database embed.FS
 
 const version = "0.2.0-beta.20241116-4"
+const appName = "rating-orama"
 
 func init() {
 	gob.Register(map[string]string{})
@@ -24,12 +24,10 @@ func init() {
 
 func main() {
 	app := app.New(version)
-	app.Migrate(database)
-	r := ron.New(func(e *ron.Engine) {
-		e.Render = ron.NewHTMLRender()
-		e.Config.LogLevel = slog.LevelDebug
+	r := fiber.New(fiber.Config{
+		AppName: appName,
 	})
-
+	
 	dbPool := db.NewPGXPool(app.Database.DataSource)
 	defer dbPool.Close()
 
@@ -38,8 +36,7 @@ func main() {
 	router(h, r)
 
 	slog.Info("server started", "port", "8080", "version", version)
-	err := http.ListenAndServe(":8080", r)
-	if err != nil {
+	if err := r.Listen(":8080"); err != nil {
 		slog.Error("cannot start server", "error", err)
 	}
 }

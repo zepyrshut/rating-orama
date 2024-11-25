@@ -1,14 +1,12 @@
 package main
 
 import (
-	"ron"
-
+	"github.com/gofiber/fiber/v2"
 	"github.com/zepyrshut/rating-orama/internal/handlers"
 )
 
-func router(h *handlers.Handlers, r *ron.Engine) {
+func router(h *handlers.Handlers, r *fiber.App) {
 
-	r.GET("/ping", h.Ping)
-	r.GET("/tvshow", h.GetTVShow)
+	r.Get("/tvshow", h.GetTVShow)
 
 }
