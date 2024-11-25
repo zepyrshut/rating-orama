@@ -1,13 +1,8 @@
-FROM golang:1.20.3-alpine
+FROM alpine:3.20
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY ./database ./database
+COPY ./tmp/rating .
 
-RUN go mod download
-
-COPY . .
-
-RUN go build -o main
-
-CMD ["/app/main"]
+CMD ["/app/rating"]

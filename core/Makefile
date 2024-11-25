@@ -38,7 +38,7 @@ test:
 .PHONY: gomock
 # Generate mock files.
 gomock:
-	mockgen -package mock -destination internal/repository/mock/querier.go arena-coins/internal/repository ExtendedQuerier
+	mockgen -package mock -destination internal/repository/mock/querier.go rating-orama/internal/repository ExtendedQuerier
 
 .PHONY: run
 # Run project.
@@ -70,7 +70,7 @@ build-linux:
 pack-docker:
 	make test
 	make build-linux
-	docker build -t arena-coins:${version} -t arena-coins:latest .
+	docker build -t rating-orama:${version} -t rating-orama:latest .
 
 .PHONY: remove-debug
 # Remove all debug entries for reduce size binary.
