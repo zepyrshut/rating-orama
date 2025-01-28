@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html/v2"
 	"github.com/zepyrshut/rating-orama/internal/app"
 	"github.com/zepyrshut/rating-orama/internal/handlers"
 	"github.com/zepyrshut/rating-orama/internal/repository"
@@ -23,10 +24,13 @@ func init() {
 var database embed.FS
 
 func main() {
+	engine := html.New("./views", ".html")
+
 	app := app.NewExtendedApp(appName, version, ".env")
 	app.Migrate(database)
 	f := fiber.New(fiber.Config{
 		AppName: appName,
+		Views:   engine,
 	})
 
 	pgxPool := db.NewPGXPool(app.Database.DataSource)

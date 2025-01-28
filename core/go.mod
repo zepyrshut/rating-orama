@@ -1,6 +1,6 @@
 module github.com/zepyrshut/rating-orama
 
-go 1.23.2
+go 1.23.5
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.0
@@ -18,6 +18,8 @@ require (
 	github.com/antchfx/xpath v1.3.2 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/gofiber/template v1.8.3 // indirect
+	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -45,6 +47,7 @@ require (
 
 require (
 	github.com/gocolly/colly v1.2.0
+	github.com/gofiber/template/html/v2 v2.1.3
 	github.com/golang-migrate/migrate/v4 v4.18.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
