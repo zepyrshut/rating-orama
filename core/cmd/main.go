@@ -14,7 +14,7 @@ import (
 	"github.com/zepyrshut/rating-orama/internal/repository"
 )
 
-const version = "0.2.2-beta.20250128-25"
+const version = "0.2.3-beta.20250128-27"
 const appName = "rating-orama"
 
 func init() {
