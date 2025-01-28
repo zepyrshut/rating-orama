@@ -4,10 +4,23 @@ services:
   core:
     container_name: rating-orama
     image: rating-orama:latest
+    depends_on:
+      db:
+        condition: service_started
     environment:
       DRIVERNAME: pgx
       DATASOURCE: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
       MIGRATE: true
+      TITLE_SELECTOR: ${TITLE_SELECTOR}
+      SEASON_SELECTOR: ${SEASON_SELECTOR}
+      EPISODE_CARD_SELECTOR: ${EPISODE_CARD_SELECTOR}
+      SEASON_EPISODE_AND_TITLE_SELECTOR: ${SEASON_EPISODE_AND_TITLE_SELECTOR}
+      RELEASED_DATE_SELECTOR: ${RELEASED_DATE_SELECTOR}
+      PLOT_SELECTOR: ${PLOT_SELECTOR}
+      STAR_RATING_SELECTOR: ${STAR_RATING_SELECTOR}
+      VOTE_COUNT_SELECTOR: ${VOTE_COUNT_SELECTOR}
+      IMDB_EPISODES_URL: ${IMDB_EPISODES_URL}
+      VISIT_URL: ${VISIT_URL}
     ports:
       - "8086:8080"
     networks:
@@ -29,3 +42,4 @@ networks:
 
 volumes:
   ratingorama_data:
+

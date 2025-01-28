@@ -26,6 +26,7 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 
 	var title string
 	var scraperEpisodes []scraper.Episode
+	var sqlcTvShow sqlc.TvShow
 	var sqlcEpisodes []sqlc.Episode
 	var totalVoteCount int32
 
@@ -33,7 +34,7 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 	if err != nil {
 		title, scraperEpisodes = scraper.ScrapeEpisodes(ttShowID)
 		//TODO: make transactional
-		ttShow, err := hq.queries.CreateTVShow(c.Context(), sqlc.CreateTVShowParams{
+		sqlcTvShow, err = hq.queries.CreateTVShow(c.Context(), sqlc.CreateTVShowParams{
 			TtImdb: ttShowID,
 			Name:   title,
 		})
@@ -42,14 +43,15 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 			return c.SendStatus(http.StatusInternalServerError)
 		}
 
-		slog.Info("ttshowid", "id", ttShow.ID)
+		slog.Info("ttshowid", "id", sqlcTvShow.ID)
 		for _, episode := range scraperEpisodes {
-			sqlcEpisodesParams := episode.ToEpisodeParams(ttShow.ID)
+			sqlcEpisodesParams := episode.ToEpisodeParams(sqlcTvShow.ID)
 			sqlcEpisode, err := hq.queries.CreateEpisodes(c.Context(), sqlcEpisodesParams)
 			if err != nil {
 				slog.Error("failed to create episodes", "ttid", ttShowID, "error", err)
 				return c.SendStatus(http.StatusInternalServerError)
 			}
+			totalVoteCount += int32(episode.VoteCount)
 			sqlcEpisodes = append(sqlcEpisodes, sqlcEpisode)
 		}
 
@@ -76,7 +78,6 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusInternalServerError)
 	}
 
-	// calculate avg rating for the show
 	avgRatingShow, err := hq.queries.TvShowAverageRating(c.Context(), sqlcTvShow.ID)
 	if err != nil {
 		slog.Error("failed to calculate avg rating for the show", "ttid", ttShowID, "error", err)
