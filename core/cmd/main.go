@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"gopher-toolbox/db"
 	"log/slog"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
@@ -23,9 +24,12 @@ func init() {
 //go:embed database/migrations
 var database embed.FS
 
+//go:embed templates
+var templates embed.FS
+
 func main() {
-	engine := html.New("./views", ".html")
-	engine.Reload(true)
+	engine := html.NewFileSystem(http.FS(templates), ".gotmpl")
+	engine.Directory = "templates"
 
 	app := app.NewExtendedApp(appName, version, ".env")
 	app.Migrate(database)

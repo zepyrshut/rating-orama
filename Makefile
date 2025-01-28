@@ -126,9 +126,8 @@ build-linux:
 .PHONY: pack-docker
 # Run docker build for pack binary and assets to Docker container.
 pack-docker:
-	make test
 	make build-linux
-	docker build -t $(MOD_NAME):${version} -t $(MOD_NAME):latest .
+	cd $(CORE_DIR) && docker build -t $(MOD_NAME):${version} -t $(MOD_NAME):latest .
 
 .PHONY: remove-debug
 # Remove all debug entries for reduce size binary.
