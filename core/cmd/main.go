@@ -13,7 +13,7 @@ import (
 	"github.com/zepyrshut/rating-orama/internal/repository"
 )
 
-const version = "0.2.0-beta.20241116-4"
+const version = "0.2.0-beta.20250128-1"
 const appName = "rating-orama"
 
 func init() {
@@ -25,6 +25,7 @@ var database embed.FS
 
 func main() {
 	engine := html.New("./views", ".html")
+	engine.Reload(true)
 
 	app := app.NewExtendedApp(appName, version, ".env")
 	app.Migrate(database)

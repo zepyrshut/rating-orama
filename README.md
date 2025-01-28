@@ -1,20 +1,20 @@
 # Rating Orama
 
-Rating Orama is a web application for displaying TV show ratings and statistics. 
+Rating Orama is a web application for displaying TV show ratings and statistics.
 It is composed of 2 main parts:
 
-1. **Core**: Written in Go and Fiber, responsible for orchestrating everything 
-and displaying the data using a template engine.
-3. **Database**: PostgreSQL for storing data.
+1. **Core**: Written in Go and Fiber, responsible for orchestrating everything
+   and displaying the data using a template engine.
+2. **Database**: PostgreSQL for storing data.
 
 ## Running the project
 
-There are two ways to run the project: launching each part individually or 
-building the Dockerfile and running it using Docker Compose. Here's an example 
+There are two ways to run the project: launching each part individually or
+building the Dockerfile and running it using Docker Compose. Here's an example
 of the `docker-compose.yml` file for the latter option:
 
 ```yaml
-version: '3'
+version: "3"
 
 services:
   core:
@@ -49,5 +49,5 @@ volumes:
 
 ## Contributions
 
-If you have ideas for improvements or bug fixes, feel free to contribute! To do 
+If you have ideas for improvements or bug fixes, feel free to contribute! To do
 so, simply clone the repository, create a new branch, and submit a pull request.

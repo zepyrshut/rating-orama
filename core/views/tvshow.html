@@ -1,0 +1,334 @@
+<div class="flex flex-col items-center gap-4 mb-8 p-2">
+    <!-- Card header -->
+    <div class="flex flex-col items-center mt-4 bg-white p-4 rounded-lg shadow-md w-1/2">
+        <div class="flex flex-col items-center space-y-4 w-full">
+            <!-- Title section -->
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-800">{{ .tvshow.Name }}</h1>
+                <div class="mt-1 flex items-center justify-center space-x-2">
+                    <a href="https://www.imdb.com/title/{{ .tvshow.TtImdb }}" target="_blank"
+                        class="text-amber-500 hover:text-amber-600 flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span class="font-semibold text-sm">{{ .tvshow.TtImdb }}</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Ratings section -->
+            <div class="grid grid-cols-2 gap-4 w-full">
+                <div class="bg-gray-50 rounded-lg p-2 text-center">
+                    <span class="text-xs text-gray-500 uppercase">Average</span>
+                    <div class="text-2xl font-bold text-gray-800">{{ printf "%.2f" .avg_rating_show }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-2 text-center">
+                    <span class="text-xs text-gray-500 uppercase">Median</span>
+                    <div class="text-2xl font-bold text-gray-800">{{ printf "%.2f" .median_rating_show }}</div>
+                </div>
+            </div>
+
+            <!-- Stats section -->
+            <div class="flex justify-around w-full px-3 py-2 bg-gray-50 rounded-lg">
+                <div class="text-center">
+                    <span class="text-xs text-gray-500">Vote count</span>
+                    <div class="text-lg font-bold text-gray-800">{{ .total_vote_count }}</div>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-gray-500">Times searched</span>
+                    <div class="text-lg font-bold text-gray-800">{{ .tvshow.Popularity }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="w-4/5 mx-6">
+
+
+        <h2 class="mb-6 text-center text-2xl font-bold">Seasons overall</h2>
+        <canvas id="seasons"></canvas>
+    </div>
+    <div class="w-4/5">
+
+        <h2 class="mb-6 text-center text-2xl font-bold">Season <span id="seasonNumber">1</span></h2>
+        <div id="seasonButtons" class="mb-4 flex flex-wrap items-center justify-center gap-2"></div>
+        <canvas id="episodes"></canvas>
+    </div>
+
+
+</div>
+
+
+{{ template "partials/footer" . }}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+    integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="module">
+
+    const episodes = JSON.parse("{{ .episodes }}")
+
+    function groupEpisodesBySeason(episodes) {
+        const seasons = {};
+        episodes.forEach(episode => {
+            if (!seasons[episode.season]) {
+                seasons[episode.season] = {
+                    number: episode.season,
+                    episodes: [],
+                    avg_rating: 0,
+                    median_rating: 0,
+                    votes: 0
+                };
+            }
+            seasons[episode.season].episodes.push({
+                number: episode.episode,
+                title: episode.name,
+                avg_rating: episode.avg_rating,
+                votes: episode.vote_count,
+                aired: episode.released
+            });
+        });
+
+        Object.values(seasons).forEach(season => {
+            const ratings = season.episodes.map(ep => ep.avg_rating);
+            season.avg_rating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+            season.median_rating = ratings.sort((a, b) => a - b)[Math.floor(ratings.length / 2)];
+            season.votes = season.episodes.reduce((sum, ep) => sum + ep.votes, 0);
+        });
+
+        return {
+            seasons: Object.values(seasons).sort((a, b) => a.number - b.number)
+        };
+    }
+
+    function createSeasonButtons() {
+        const maxSeason = Math.max(...episodes.map(ep => ep.season));
+        const buttonContainer = document.getElementById('seasonButtons');
+        const seasonNumberSpan = document.getElementById('seasonNumber');
+
+        for (let i = 1; i <= maxSeason; i++) {
+            const button = document.createElement('button');
+            button.textContent = `S${i}`;
+            button.className = 'rounded-md border-2 border-black px-4 py-2 font-semibold transition-colors duration-200 hover:bg-black hover:text-white';
+            if (i === 1) button.classList.add('bg-black', 'text-white');
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                buttonContainer.querySelectorAll('button').forEach(btn => {
+                    btn.classList.remove('bg-black', 'text-white');
+                    btn.classList.add('text-black');
+                });
+
+                button.classList.remove('text-black');
+                button.classList.add('bg-black', 'text-white');
+
+                seasonNumberSpan.textContent = i;
+
+                const formattedData = groupEpisodesBySeason(episodes);
+                loadSpecificSeason(formattedData, i);
+            });
+
+            buttonContainer.appendChild(button);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const formattedData = groupEpisodesBySeason(episodes);
+        initCharts(formattedData);
+        createSeasonButtons();
+    });
+
+    function loadSeason(seasonNumber) {
+        const formattedData = groupEpisodesBySeason(episodes);
+        loadSpecificSeason(formattedData, seasonNumber);
+    }
+
+    function initCharts(tvShowParsed) {
+        new EpisodeChart(tvShowParsed, "episodes", 0);
+        new SeasonsChart(tvShowParsed, "seasons");
+    }
+
+    function loadSpecificSeason(tvShowParsed, seasonId) {
+        // Guardamos la posición actual del scroll
+        const currentScroll = window.scrollY;
+        
+        new EpisodeChart(tvShowParsed, "episodes", seasonId - 1);
+        
+        // Restauramos la posición del scroll
+        window.scrollTo(0, currentScroll);
+    }
+
+
+    let chartInstance;
+    class SeasonsChart {
+        constructor(tvShowParsed, canvasId) {
+            this.tvShowParsed = tvShowParsed;
+            this.canvasId = canvasId;
+            this.createChart();
+        }
+
+        createChart() {
+            const seasons = this.tvShowParsed.seasons;
+            const labels = seasons.map((season) => `Season ${season.number}`);
+            const averageRating = seasons.map((season) => season.avg_rating);
+            const medianRating = seasons.map((season) => season.median_rating);
+            const votes = seasons.map((season) => season.votes);
+            const title = "Seasons"
+            const ctx = document.getElementById(this.canvasId);
+
+            new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Average rating",
+                            data: averageRating,
+                            backgroundColor: "rgba(75, 192, 192, 0.5)",
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            borderWidth: 1,
+                            Range: 10,
+                            yAxisID: "y-axis-ratings",
+                        },
+                        {
+                            label: "Median rating",
+                            data: medianRating,
+                            backgroundColor: "rgba(255, 206, 86, 0.5)",
+                            borderColor: "rgba(255, 206, 86, 1)",
+                            borderWidth: 1,
+                            Range: 10,
+                            yAxisID: "y-axis-ratings",
+
+                        },
+                        {
+                            label: "Votes",
+                            data: votes,
+                            type: "line",
+                            tension: 0.4,
+                            fill: false,
+                            borderColor: "rgba(255, 99, 132, 1)",
+                            borderWidth: 2,
+                            yAxisID: "y-axis-votes",
+                        },
+                    ],
+                },
+                options: {
+                    animation: {
+                        duration: 0,
+                    },
+                    y: {
+                        stacked: true,
+                    },
+                    scales: {
+                        "y-axis-ratings": {
+                            min: 0,
+                            max: 10,
+                            type: "linear",
+                            display: true,
+                            position: "left",
+                            beginAtZero: true,
+                        },
+                        "y-axis-votes": {
+                            type: "linear",
+                            display: true,
+                            position: "right",
+                            beginAtZero: true,
+                        },
+                    },
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title,
+                    },
+                }
+            });
+        }
+    }
+
+    class EpisodeChart {
+        constructor(tvShowParsed, canvasId, seasonId) {
+            this.tvShowParsed = tvShowParsed;
+            this.canvasId = canvasId;
+            this.seasonId = seasonId;
+            this.createChart();
+        }
+
+        createChart() {
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const episodes = this.tvShowParsed.seasons[this.seasonId].episodes;
+            const labels = episodes.map((episode) => `Ep. ${episode.number}`);
+            const ratings = episodes.map((episode) => episode.avg_rating);
+            const votes = episodes.map((episode) => episode.votes);
+            const title = `Episodes of season ${this.seasonId + 1}`
+            const ctx = document.getElementById(this.canvasId);
+
+            chartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Average rating",
+                            data: ratings,
+                            backgroundColor: "rgba(75, 192, 192, 0.5)",
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            borderWidth: 1,
+                            Range: 10,
+                            yAxisID: "y-axis-ratings",
+                        },
+                        {
+                            label: "Votes",
+                            data: votes,
+                            type: "line",
+                            tension: 0.4,
+                            fill: false,
+                            borderColor: "rgba(255, 99, 132, 1)",
+                            borderWidth: 2,
+                            yAxisID: "y-axis-votes",
+                        },
+                    ],
+                },
+                options: {
+                    animation: {
+                        duration: 0,
+                    },
+                    scales: {
+                        "y-axis-ratings": {
+                            min: 0,
+                            max: 10,
+                            type: "linear",
+                            display: true,
+                            position: "left",
+                            beginAtZero: true,
+                        },
+                        "y-axis-votes": {
+                            type: "linear",
+                            display: true,
+                            position: "right",
+                            beginAtZero: true,
+                        },
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: function (context) {
+                                    const index = context[0].dataIndex;
+                                    const episode = episodes[index];
+                                    return `${episode.title} (${episode.aired.split("T")[0]})`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
+    }
+
+</script>

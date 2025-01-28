@@ -7,6 +7,7 @@ import (
 
 func router(h *handlers.Handlers, r *fiber.App) {
 
+	r.Get("/", h.GetIndex)
 	r.Get("/tvshow", h.GetTVShow)
 
 }

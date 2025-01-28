@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -9,6 +10,12 @@ import (
 	"github.com/zepyrshut/rating-orama/internal/scraper"
 	"github.com/zepyrshut/rating-orama/internal/sqlc"
 )
+
+func (hq *Handlers) GetIndex(c *fiber.Ctx) error {
+	return c.Render("index", fiber.Map{
+		"Title": "Rating Orama",
+	}, "layouts/main")
+}
 
 func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 	ttShowID := c.Query("ttid")
@@ -20,8 +27,9 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 	var title string
 	var scraperEpisodes []scraper.Episode
 	var sqlcEpisodes []sqlc.Episode
+	var totalVoteCount int32
 
-	tvShow, err := hq.queries.CheckTVShowExists(c.Context(), ttShowID)
+	sqlcTvShow, err := hq.queries.CheckTVShowExists(c.Context(), ttShowID)
 	if err != nil {
 		title, scraperEpisodes = scraper.ScrapeEpisodes(ttShowID)
 		//TODO: make transactional
@@ -42,26 +50,61 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 				slog.Error("failed to create episodes", "ttid", ttShowID, "error", err)
 				return c.SendStatus(http.StatusInternalServerError)
 			}
-
 			sqlcEpisodes = append(sqlcEpisodes, sqlcEpisode)
 		}
 
 		slog.Info("scraped seasons", "ttid", ttShowID, "title", title)
 	} else {
-		title = tvShow.Name
-		sqlcEpisodes, err = hq.queries.GetEpisodes(c.Context(), tvShow.ID)
+		title = sqlcTvShow.Name
+		sqlcEpisodes, err = hq.queries.GetEpisodes(c.Context(), sqlcTvShow.ID)
 		if err != nil {
 			slog.Error("failed to get episodes", "ttid", ttShowID, "error", err)
 			return c.SendStatus(http.StatusInternalServerError)
 		}
 
+		for _, episode := range sqlcEpisodes {
+			totalVoteCount += episode.VoteCount
+		}
+
 		hq.queries.IncreasePopularity(c.Context(), ttShowID)
-		slog.Info("tv show exists", "ttid", ttShowID, "title", tvShow.Name)
+		slog.Info("tv show exists", "ttid", ttShowID, "title", sqlcTvShow.Name)
 	}
 
-	return c.JSON(fiber.Map{
-		"popularity": tvShow.Popularity,
-		"title":      title,
-		"seasons":    sqlcEpisodes,
+	episodesJSON, err := json.Marshal(sqlcEpisodes)
+	if err != nil {
+		slog.Error("failed to marshal episodes", "ttid", ttShowID, "error", err)
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	// calculate avg rating for the show
+	avgRatingShow, err := hq.queries.TvShowAverageRating(c.Context(), sqlcTvShow.ID)
+	if err != nil {
+		slog.Error("failed to calculate avg rating for the show", "ttid", ttShowID, "error", err)
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	medianRatingShow, err := hq.queries.TvShowMedianRating(c.Context(), sqlcTvShow.ID)
+	if err != nil {
+		slog.Error("failed to calculate median rating for the show", "ttid", ttShowID, "error", err)
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	seasongAvgRatings, err := hq.queries.SeasonAverageRating(c.Context(), sqlc.SeasonAverageRatingParams{
+		TvShowID: sqlcTvShow.ID,
 	})
+
+	seasonMedianRatings, err := hq.queries.SeasonMedianRating(c.Context(), sqlc.SeasonMedianRatingParams{
+		TvShowID: sqlcTvShow.ID,
+	})
+
+	return c.Render("tvshow", fiber.Map{
+		"Title":                 sqlcTvShow.Name,
+		"tvshow":                sqlcTvShow,
+		"episodes":              string(episodesJSON),
+		"avg_rating_show":       avgRatingShow,
+		"median_rating_show":    medianRatingShow,
+		"season_avg_ratings":    seasongAvgRatings,
+		"season_median_ratings": seasonMedianRatings,
+		"total_vote_count":      totalVoteCount,
+	}, "layouts/main")
 }

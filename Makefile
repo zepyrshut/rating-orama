@@ -81,8 +81,6 @@ pg-docs:
 # Generate or recreate SQLC queries.
 sqlc:
 	cd $(CORE_DIR) && sqlc generate
-	make gomock
-
 
 .PHONY: test
 # Test all files and generate coverage file.
@@ -120,9 +118,10 @@ tidy:
 .PHONY: build-linux
 # Build and generate linux executable.
 build-linux:
-	cd $(CORE_DIR) && make tidy
-	cd $(CORE_DIR) && make remove-debug
-	cd $(CORE_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/arena ./cmd/.
+	cd $(CORE_DIR) && go mod tidy
+	cd $(CORE_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/$(MOD_NAME) ./cmd/.
+
+
 
 .PHONY: pack-docker
 # Run docker build for pack binary and assets to Docker container.
