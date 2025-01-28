@@ -14,7 +14,7 @@ import (
 	"github.com/zepyrshut/rating-orama/internal/repository"
 )
 
-const version = "0.2.1-beta.20250128-24"
+const version = "0.2.2-beta.20250128-25"
 const appName = "rating-orama"
 
 func init() {
@@ -28,7 +28,7 @@ var database embed.FS
 var templates embed.FS
 
 func main() {
-	engine := html.NewFileSystem(http.FS(templates), ".gotmpl")
+	engine := html.NewFileSystem(http.FS(templates), ".html")
 	engine.Directory = "templates"
 
 	app := app.NewExtendedApp(appName, version, ".env")
