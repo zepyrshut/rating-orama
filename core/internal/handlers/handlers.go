@@ -1,30 +1,18 @@
 package handlers
 
 import (
-	"net/http"
-
-	"gopher-toolbox/app"
-
-	"github.com/gofiber/fiber/v2"
+	"github.com/zepyrshut/rating-orama/internal/app"
 	"github.com/zepyrshut/rating-orama/internal/repository"
 )
 
 type Handlers struct {
-	app     *app.App
+	app     *app.ExtendedApp
 	queries repository.ExtendedQuerier
 }
 
-func New(app *app.App, q repository.ExtendedQuerier) *Handlers {
+func New(r repository.ExtendedQuerier, app *app.ExtendedApp) *Handlers {
 	return &Handlers{
 		app:     app,
-		queries: q,
+		queries: r,
 	}
-}
-
-func (hq *Handlers) ToBeImplemented(c *fiber.Ctx) error {
-	return c.Status(http.StatusNotImplemented).JSON("not implemented")
-}
-
-func (hq *Handlers) Ping(c *fiber.Ctx) error {
-	return c.JSON("pong")
 }

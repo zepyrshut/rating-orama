@@ -13,6 +13,10 @@ import (
 func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 	ttShowID := c.Query("ttid")
 
+	if ttShowID == "" {
+		return c.SendStatus(http.StatusBadRequest)
+	}
+
 	var title string
 	var scraperEpisodes []scraper.Episode
 	var sqlcEpisodes []sqlc.Episode
@@ -20,7 +24,7 @@ func (hq *Handlers) GetTVShow(c *fiber.Ctx) error {
 	tvShow, err := hq.queries.CheckTVShowExists(c.Context(), ttShowID)
 	if err != nil {
 		title, scraperEpisodes = scraper.ScrapeEpisodes(ttShowID)
-		// TODO: make transactional
+		//TODO: make transactional
 		ttShow, err := hq.queries.CreateTVShow(c.Context(), sqlc.CreateTVShowParams{
 			TtImdb: ttShowID,
 			Name:   title,

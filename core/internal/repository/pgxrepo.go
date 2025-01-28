@@ -2,39 +2,44 @@ package repository
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/zepyrshut/rating-orama/internal/app"
 	"github.com/zepyrshut/rating-orama/internal/sqlc"
 )
 
 type pgxRepository struct {
 	*sqlc.Queries
-	db *pgxpool.Pool
+	pool *pgxpool.Pool
+	app  *app.ExtendedApp
 }
 
-func NewPGXRepo(db *pgxpool.Pool) ExtendedQuerier {
+var _ ExtendedQuerier = &pgxRepository{}
+
+func NewPGXRepo(pgx *pgxpool.Pool, app *app.ExtendedApp) ExtendedQuerier {
 	return &pgxRepository{
-		Queries: sqlc.New(db),
-		db:      db,
+		Queries: sqlc.New(pgx),
+		pool:    pgx,
+		app:     app,
 	}
 }
 
-func (r *pgxRepository) execTx(ctx context.Context, txFunc func(tx pgx.Tx) error) error {
-	slog.Info("starting transaction", "txFunc", txFunc)
-	tx, err := r.db.Begin(ctx)
+func (r *pgxRepository) execTx(ctx context.Context, fn func(*sqlc.Queries) error) error {
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		slog.Error("failed to start transaction", "error", err)
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	if err := txFunc(tx); err != nil {
-		slog.Error("failed to execute transaction", "error", err)
 		return err
 	}
 
-	slog.Info("committing transaction", "txFunc", txFunc)
+	q := sqlc.New(tx)
+
+	err = fn(q)
+	if err != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
+		}
+		return err
+	}
+
 	return tx.Commit(ctx)
 }

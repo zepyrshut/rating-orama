@@ -3,6 +3,7 @@ package scraper
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -43,20 +44,6 @@ func (e Episode) ToEpisodeParams(tvShowID int32) sqlc.CreateEpisodesParams {
 	}
 }
 
-const (
-	titleSelector                 = "h2.sc-b8cc654b-9.dmvgRY"
-	seasonsSelector               = "ul.ipc-tabs a[data-testid='tab-season-entry']"
-	episodeCardSelector           = "article.sc-f8507e90-1.cHtpvn.episode-item-wrapper"
-	seasonEpisodeAndTitleSelector = "div.ipc-title__text"
-	releasedDateSelector          = "span.sc-f2169d65-10.bYaARM"
-	plotSelector                  = "div.ipc-html-content-inner-div"
-	starRatingSelector            = "span.ipc-rating-star--rating"
-	voteCountSelector             = "span.ipc-rating-star--voteCount"
-	imdbEpisodesURL               = "https://www.imdb.com/title/%s/episodes/?season=%d"
-	visitURL                      = "https://www.imdb.com/title/%s/episodes"
-)
-
-
 func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 	c := colly.NewCollector(
 		colly.AllowedDomains("imdb.com", "www.imdb.com"),
@@ -70,7 +57,7 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 	var seasons []int
 	var title string
 
-	c.OnHTML(seasonsSelector, func(e *colly.HTMLElement) {
+	c.OnHTML(os.Getenv("SEASON_SELECTOR"), func(e *colly.HTMLElement) {
 		seasonText := strings.TrimSpace(e.Text)
 		seasonNum, err := strconv.Atoi(seasonText)
 		if err == nil {
@@ -78,7 +65,7 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 		}
 	})
 
-	c.OnHTML(titleSelector, func(e *colly.HTMLElement) {
+	c.OnHTML(os.Getenv("TITLE_SELECTOR"), func(e *colly.HTMLElement) {
 		title = e.Text
 	})
 
@@ -103,7 +90,7 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 		})
 
 		for _, seasonNum := range uniqueSeasons {
-			seasonURL := fmt.Sprintf(imdbEpisodesURL, ttImdb, seasonNum)
+			seasonURL := fmt.Sprintf(os.Getenv("IMDB_EPISODES_URL"), ttImdb, seasonNum)
 			slog.Info("visiting season", "url", seasonURL)
 			_ = episodeCollector.Visit(seasonURL)
 		}
@@ -111,7 +98,7 @@ func ScrapeEpisodes(ttImdb string) (string, []Episode) {
 		episodeCollector.Wait()
 	})
 
-	_ = c.Visit(fmt.Sprintf(visitURL, ttImdb))
+	_ = c.Visit(fmt.Sprintf(os.Getenv("VISIT_URL"), ttImdb))
 	c.Wait()
 
 	slog.Info("scraped all seasons", "length", len(allSeasons))
@@ -126,26 +113,26 @@ func extractEpisodesFromSeason(data string) []Episode {
 	}
 
 	var episodes []Episode
-	doc.Find(episodeCardSelector).Each(func(i int, s *goquery.Selection) {
+	doc.Find(os.Getenv("EPISODE_CARD_SELECTOR")).Each(func(i int, s *goquery.Selection) {
 		var episode Episode
 
-		seasonEpisodeTitle := s.Find(seasonEpisodeAndTitleSelector).Text()
+		seasonEpisodeTitle := s.Find(os.Getenv("SEASON_EPISODE_AND_TITLE_SELECTOR")).Text()
 		episode.Season, episode.Episode, episode.Name = parseSeasonEpisodeTitle(seasonEpisodeTitle)
 
-		releasedDate := s.Find(releasedDateSelector).Text()
+		releasedDate := s.Find(os.Getenv("RELEASED_DATE_SELECTOR")).Text()
 		episode.Released = parseReleasedDate(releasedDate)
 
-		plot := s.Find(plotSelector).Text()
+		plot := s.Find(os.Getenv("PLOT_SELECTOR")).Text()
 		if plot == "Add a plot" {
 			episode.Plot = ""
 		} else {
 			episode.Plot = plot
 		}
 
-		starRating := s.Find(starRatingSelector).Text()
+		starRating := s.Find(os.Getenv("STAR_RATING_SELECTOR")).Text()
 		episode.Rate = parseStarRating(starRating)
 
-		voteCount := s.Find(voteCountSelector).Text()
+		voteCount := s.Find(os.Getenv("VOTE_COUNT_SELECTOR")).Text()
 		episode.VoteCount = parseVoteCount(voteCount)
 
 		episodes = append(episodes, episode)
